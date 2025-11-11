@@ -15,6 +15,8 @@ class Matrix(Expr):
     def __matmul__(self, other: Matrix) -> Matrix: ...
     def mat_vec_mul(self, other: Vector) -> Vector: ...
     def spmv(self, other: Vector) -> Vector: ...
+    def to_csr(self) -> Matrix: ...
+    def to_csc(self) -> Matrix: ...
 
     @property
     def row(self) -> i64: ...
@@ -85,17 +87,21 @@ def _matrix_vector(m: Matrix, x: Vector, y: Vector, r: i64, c: i64, l: i64, s: f
         s >= SPARSITY_THRESHOLD,
     )
 
-matrix_sparse = egraph.let("matrix_sparse", Matrix(64, 29, 0.7, "sparse"))
-matrix_dense = egraph.let("matrix_dense", Matrix(64, 29, 0.3, "dense"))
-vector1 = egraph.let("vector1", Vector(29))
+@egraph.register
+def _matrix_format(a: Matrix, b: Matrix, r: i64, c: i64, m: i64, s: f64, st: String) -> Iterable[RewriteOrRule]:
+    yield rule(
+        b == a.to_csc(),
+        s == a.sparsity,
+        s >= SPARSITY_THRESHOLD,
+        st == a.storage,
+        #st == "dense",
+    ).then(set_(b.storage).to("sparse"))
 
-sparse_expr = egraph.let("sparse_expr", matrix_sparse.mat_vec_mul(vector1))
-sparse_expected = egraph.let("sparse_expected", matrix_sparse.spmv(vector1))
-dense_expr = egraph.let("dense_expr", matrix_dense.mat_vec_mul(vector1))
-dense_expected = egraph.let("dense_expected", matrix_dense.mat_vec_mul(vector1))
-
-egraph.saturate()
-
-egraph.check(sparse_expr == sparse_expected)
-egraph.check(dense_expr == dense_expected)
-#print(egraph.extract(sparse_expr))
+    # ? COUT
+    #yield rewrite((Matrix(r, c, s, st))).to(
+        #(Matrix(r, c, s, "sparse")),
+        #st == m.storage,
+        #st == "dense",
+        #s == m.sparsity,
+        #s >= SPARSITY_THRESHOLD,
+    #)
