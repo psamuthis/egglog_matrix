@@ -115,12 +115,20 @@ def _matrix_format(a: Matrix, b: Matrix, r: i64, c: i64, s: f64, st: i64) -> Ite
         Matrix(r, c, s, StorageFormat.CSC.value),
         a == Matrix(r, c, s, st),
         s >= SPARSITY_THRESHOLD,
-        st != StorageFormat.CSC.value
     )
-
     yield rule(
         a.to_csc(),
         a == Matrix(r, c, s, st),
         s >= SPARSITY_THRESHOLD,
-        st != StorageFormat.CSC.value
     ).then(set_cost(a.to_csc(), r * c))
+
+    yield rewrite(a.to_csr()).to(
+        Matrix(r, c, s, StorageFormat.CSR.value),
+        a == Matrix(r, c, s, st),
+        s >= SPARSITY_THRESHOLD,
+    )
+    yield rule(
+        a.to_csr(),
+        a == Matrix(r, c, s, st),
+        s >= SPARSITY_THRESHOLD,
+    ).then(set_cost(a.to_csr(), r * c))
