@@ -1,6 +1,8 @@
 import unittest
+import sys
+from pathlib import Path
+
 
 loader = unittest.TestLoader()
-suite = loader.discover('test')
 runner = unittest.TextTestRunner(verbosity=2)
 runner.run(suite)
