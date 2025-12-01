@@ -18,7 +18,12 @@ class Vector(Expr):
 
 class Matrix(Expr):
     def __init__(self, rows: i64Like, cols: i64Like, sparsity: f64Like, storage: i64Like) -> None: ...
+    def mat_inv(self) -> Matrix: ...
+    def mat_trans(self) -> Matrix: ...
     def __matmul__(self, other: Matrix) -> Matrix: ...
+    def kron(self, other: Matrix) -> Matrix: ...
+    def krao(self, other: Matrix) -> Matrix: ...
+    def hdmr(self, other: Matrix) -> Matrix: ...
     def mat_vec_mul(self, other: Vector) -> Vector: ...
     def spmv(self, other: Vector) -> Vector: ...
     def to_csr(self) -> Matrix: ...
@@ -37,6 +42,41 @@ class Matrix(Expr):
 egraph = EGraph()
 
 @egraph.register
+def _matrix_self(x: Matrix, y: Matrix, r: i64, c: i64, s: f64, st: i64) -> Iterable[RewriteOrRule]:
+    yield rule(
+        x == y.mat_trans(),
+        r == y.row,
+        c == y.col,
+        s == y.sparsity,
+    ).then(
+        set_(x.row).to(c),
+        set_(x.col).to(r),
+        set_(x.sparsity).to(s),
+    )
+    yield rule(
+        x == y.mat_trans(),
+        r == y.row,
+        c == y.col,
+        s == y.sparsity,
+    ).then(set_cost(y.mat_trans(), r*c))
+
+    yield rule(
+        x == y.mat_inv(),
+        y.row == y.col,
+        r == y.row,
+        c == y.col,
+    ).then(
+        set_(x.row).to(r),
+        set_(x.col).to(c),
+        set_(x.sparsity).to(0.3)
+    )
+    yield rule(
+        x == y.mat_inv(),
+        r == y.row,
+        c == y.col,
+    ).then(set_cost(y.mat_inv(), (2*c) * r))
+
+@egraph.register
 def _matrix_matrix(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f64, st: i64) -> Iterable[RewriteOrRule]:
     yield rule(
         x == Matrix(r, c, s, st)
@@ -50,6 +90,8 @@ def _matrix_matrix(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f
     yield rule(
         x == (y @ z),
         y.col == z.row,
+        y.sparsity < SPARSITY_THRESHOLD,
+        z.sparsity < SPARSITY_THRESHOLD,
         r == y.row,
         c == z.col,
         s == y.sparsity * z.sparsity,
@@ -66,6 +108,65 @@ def _matrix_matrix(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f
     ).then(set_cost(y @ z, r * m * c))
 
     yield birewrite(x @ (y @ z)).to((x @ y) @ z)
+
+
+    yield rule(
+        x == y.kron(z),
+        y.sparsity < SPARSITY_THRESHOLD,
+        z.sparsity < SPARSITY_THRESHOLD,
+        r == y.row * z.row,
+        c == y.col * z.col,
+        s == 1.0 - (1.0-y.sparsity)*(1.0-z.sparsity),
+    ).then(
+        set_(x.row).to(r),
+        set_(x.col).to(c),
+        set_(x.sparsity).to(s),
+    )
+    yield rule(
+        x == y.kron(z),
+        r == y.row * z.row,
+        c == y.col * z.col,
+    ).then(set_cost(y.kron(z), r * c))
+
+
+    yield rule(
+        x == y.krao(z),
+        y.col == z.col,
+        y.sparsity < SPARSITY_THRESHOLD,
+        z.sparsity < SPARSITY_THRESHOLD,
+        r == y.row * z.row,
+        c == y.col,
+        s == 1.0 - (1.0-y.sparsity)*(1.0-z.sparsity),
+    ).then(
+        set_(x.row).to(r),
+        set_(x.col).to(c),
+        set_(x.sparsity).to(s),
+    )
+    yield rule(
+        x == y.krao(z),
+        r == y.row * z.row,
+        c == y.col,
+    ).then(set_cost(y.krao(z), r * c))
+
+    yield rule(
+        x == y.hdmr(z),
+        y.sparsity < SPARSITY_THRESHOLD,
+        z.sparsity < SPARSITY_THRESHOLD,
+        y.col == z.col,
+        y.row == z.row,
+        r == y.row,
+        c == y.col,
+        s == 1.0 - (1.0-y.sparsity)*(1.0-z.sparsity),
+    ).then(
+        set_(x.row).to(r),
+        set_(x.col).to(c),
+        set_(x.sparsity).to(s),
+    )
+    yield rule(
+        x == y.hdmr(z),
+        r == y.row,
+        c == y.col,
+    ).then(set_cost(y.hdmr(z), r * c * 2))
 
 @egraph.register
 def _matrix_vector(m: Matrix, x: Vector, y: Vector, r: i64, c: i64, l: i64, s: f64, st: i64) -> Iterable[RewriteOrRule]:
