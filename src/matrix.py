@@ -19,11 +19,14 @@ class Vector(Expr):
 class Matrix(Expr):
     def __init__(self, rows: i64Like, cols: i64Like, sparsity: f64Like, storage: i64Like) -> None: ...
     def mat_inv(self) -> Matrix: ...
+    def mat_mpinv(self) -> Matrix: ...
     def mat_trans(self) -> Matrix: ...
     def __matmul__(self, other: Matrix) -> Matrix: ...
+    def matadd(self, other: Matrix) -> Matrix: ...
     def kron(self, other: Matrix) -> Matrix: ...
     def krao(self, other: Matrix) -> Matrix: ...
     def hdmr(self, other: Matrix) -> Matrix: ...
+    def mat_concat(self, other: Matrix) -> Matrix: ...
     def mat_vec_mul(self, other: Vector) -> Vector: ...
     def spmv(self, other: Vector) -> Vector: ...
     def to_csr(self) -> Matrix: ...
@@ -77,7 +80,7 @@ def _matrix_self(x: Matrix, y: Matrix, r: i64, c: i64, s: f64, st: i64) -> Itera
     ).then(set_cost(y.mat_inv(), (2*c) * r))
 
 @egraph.register
-def _matrix_matrix(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f64, st: i64) -> Iterable[RewriteOrRule]:
+def _matrix_matrix(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f64, st: i64) -> Iterable[RewriteOrRule]:
     yield rule(
         x == Matrix(r, c, s, st)
     ).then(
@@ -114,6 +117,8 @@ def _matrix_matrix(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f
         x == y.kron(z),
         y.sparsity < SPARSITY_THRESHOLD,
         z.sparsity < SPARSITY_THRESHOLD,
+        y.storage == StorageFormat.NATIVE.value,
+        z.storage == StorageFormat.NATIVE.value,
         r == y.row * z.row,
         c == y.col * z.col,
         s == 1.0 - (1.0-y.sparsity)*(1.0-z.sparsity),
@@ -127,6 +132,20 @@ def _matrix_matrix(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f
         r == y.row * z.row,
         c == y.col * z.col,
     ).then(set_cost(y.kron(z), r * c))
+    yield birewrite(x.kron(y.matadd(z))
+        ).to((x.kron(y)).matadd(x.kron(z)))
+    yield birewrite(y.matadd(z).kron(x)
+        ).to((y.kron(x)).matadd(z.kron(x)))
+    yield birewrite((x.kron(y)).kron(z)
+        ).to(x.kron((y.kron(z))))
+    yield birewrite((w.kron(x)) @ (y.kron(z))
+        ).to((w@y).kron(x@z))
+    #TO ADD: concatenation (cf. wiki 4. Commutator Property)
+    yield birewrite((w.kron(x)).hdmr((y.kron(z)))
+        ).to((w.hdmr(y)).kron((x.hdmr(z))))
+    yield birewrite((w.kron(x)).mat_inv()
+        ).to(w.mat_inv().kron(x.mat_inv()))
+    #TO ADD: mp distrib (wiki 6. inverse of kron prod)
 
 
     yield rule(
@@ -167,6 +186,27 @@ def _matrix_matrix(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f
         r == y.row,
         c == y.col,
     ).then(set_cost(y.hdmr(z), r * c * 2))
+
+
+    yield rule(
+        x == y.matadd(z),
+        y.row == z.row,
+        y.col == z.col,
+        y.sparsity < SPARSITY_THRESHOLD,
+        z.sparsity < SPARSITY_THRESHOLD,
+        r == y.row,
+        c == y.col,
+        s == 1.0 - (1.0-y.sparsity)*(1.0-z.sparsity),
+    ).then(
+        set_(x.row).to(r),
+        set_(x.col).to(c),
+        set_(x.sparsity).to(s),
+    )
+    yield rule(
+        x == y.matadd(z),
+        r == y.row,
+        c == y.col,
+    ).then(set_cost(y.matadd(z), r*c*2))
 
 @egraph.register
 def _matrix_vector(m: Matrix, x: Vector, y: Vector, r: i64, c: i64, l: i64, s: f64, st: i64) -> Iterable[RewriteOrRule]:
