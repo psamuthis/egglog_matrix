@@ -22,7 +22,7 @@ class Matrix(Expr):
     def mat_mpinv(self) -> Matrix: ...
     def mat_trans(self) -> Matrix: ...
     def __matmul__(self, other: Matrix) -> Matrix: ...
-    def matadd(self, other: Matrix) -> Matrix: ...
+    def mat_add(self, other: Matrix) -> Matrix: ...
     def kron(self, other: Matrix) -> Matrix: ...
     def krao(self, other: Matrix) -> Matrix: ...
     def hdmr(self, other: Matrix) -> Matrix: ...
@@ -132,19 +132,19 @@ def _matrix_matrix(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m
         r == y.row * z.row,
         c == y.col * z.col,
     ).then(set_cost(y.kron(z), r * c))
-    yield birewrite(x.kron(y.matadd(z))
-        ).to((x.kron(y)).matadd(x.kron(z)))
-    yield birewrite(y.matadd(z).kron(x)
-        ).to((y.kron(x)).matadd(z.kron(x)))
-    yield birewrite((x.kron(y)).kron(z)
-        ).to(x.kron((y.kron(z))))
-    yield birewrite((w.kron(x)) @ (y.kron(z))
-        ).to((w@y).kron(x@z))
-    #TO ADD: concatenation (cf. wiki 4. Commutator Property)
+    yield birewrite(x.kron(y.mat_add(z))).to((x.kron(y)).mat_add(x.kron(z)))
+    yield birewrite(y.mat_add(z).kron(x)).to((y.kron(x)).mat_add(z.kron(x)))
+    yield birewrite((x.kron(y)).kron(z)).to(x.kron((y.kron(z))))
+    yield birewrite((w.kron(x)) @ (y.kron(z))).to((w@y).kron(x@z))
     yield birewrite((w.kron(x)).hdmr((y.kron(z)))
-        ).to((w.hdmr(y)).kron((x.hdmr(z))))
-    yield birewrite((w.kron(x)).mat_inv()
-        ).to(w.mat_inv().kron(x.mat_inv()))
+        ).to((w.hdmr(y)).kron((x.hdmr(z)))
+        , w.row == y.row
+        , w.col == y.col
+        , x.row == z.row
+        , x.col == z.col)
+    yield birewrite((w.kron(x)).mat_inv()).to(w.mat_inv().kron(x.mat_inv()))
+    yield birewrite(w.kron(x).mat_trans()).to(w.mat_trans().kron(x.mat_trans()))
+    #TO ADD: concatenation (cf. wiki 4. Commutator Property)
     #TO ADD: mp distrib (wiki 6. inverse of kron prod)
 
 
@@ -166,6 +166,8 @@ def _matrix_matrix(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m
         r == y.row * z.row,
         c == y.col,
     ).then(set_cost(y.krao(z), r * c))
+    yield birewrite(w.krao(x).mat_trans() @ w.krao(x)).to((w.mat_trans()@w).hdmr(x.mat_trans()@x))
+    yield birewrite((w.kron(x)) @ (y.krao(z))).to((w@y).krao(x@z))
 
     yield rule(
         x == y.hdmr(z),
@@ -186,10 +188,13 @@ def _matrix_matrix(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m
         r == y.row,
         c == y.col,
     ).then(set_cost(y.hdmr(z), r * c * 2))
+    yield birewrite(w.hdmr(x)).to(x.hdmr(w))
+    yield birewrite(w.hdmr(x.hdmr(y))).to((w.hdmr(x)).hdmr(y))
+    yield birewrite(w.hdmr(x.mat_add(y))).to((w.hdmr(x)).mat_add(w.hdmr(y)))
 
 
     yield rule(
-        x == y.matadd(z),
+        x == y.mat_add(z),
         y.row == z.row,
         y.col == z.col,
         y.sparsity < SPARSITY_THRESHOLD,
@@ -203,10 +208,10 @@ def _matrix_matrix(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m
         set_(x.sparsity).to(s),
     )
     yield rule(
-        x == y.matadd(z),
+        x == y.mat_add(z),
         r == y.row,
         c == y.col,
-    ).then(set_cost(y.matadd(z), r*c*2))
+    ).then(set_cost(y.mat_add(z), r*c*2))
 
 @egraph.register
 def _matrix_vector(m: Matrix, x: Vector, y: Vector, r: i64, c: i64, l: i64, s: f64, st: i64) -> Iterable[RewriteOrRule]:

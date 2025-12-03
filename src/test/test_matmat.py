@@ -29,8 +29,8 @@ class TestMatrixMatrix(unittest.TestCase):
         y = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)
         z = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)
 
-        left_side = egraph.let("left", x.kron(y.matadd(z)))
-        right_side = egraph.let("right", (x.kron(y)).matadd(x.kron(z)))
+        left_side = egraph.let("left", x.kron(y.mat_add(z)))
+        right_side = egraph.let("right", (x.kron(y)).mat_add(x.kron(z)))
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(left_side == right_side))
@@ -44,8 +44,8 @@ class TestMatrixMatrix(unittest.TestCase):
         y = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)
         z = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)
 
-        left_side = egraph.let("left", y.matadd(z).kron(x))
-        right_side = egraph.let("right", (y.kron(x)).matadd(z.kron(x)))
+        left_side = egraph.let("left", y.mat_add(z).kron(x))
+        right_side = egraph.let("right", (y.kron(x)).mat_add(z.kron(x)))
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(left_side == right_side))
@@ -110,4 +110,115 @@ class TestMatrixMatrix(unittest.TestCase):
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_kronecker_transpose_distributivity(self):
+        egraph.push()
+        w = Matrix(3, 3, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(2, 2, 0.5, StorageFormat.NATIVE.value)
+
+        left_side = egraph.let("left", w.kron(x).mat_trans())
+        right_side = egraph.let("right", w.mat_trans().kron(x.mat_trans()))
+
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_krao_transpose_times_krao(self):
+        egraph.push()
+        w = Matrix(3, 3, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(2, 2, 0.5, StorageFormat.NATIVE.value)
+
+        left_side = egraph.let("left", w.krao(x).mat_trans() @ w.krao(x))
+        right_side = egraph.let("right", (w.mat_trans()@w).hdmr(x.mat_trans()@x))
+
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_kron_times_krao_distributivity(self):
+        egraph.push()
+        w = Matrix(3, 3, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(2, 2, 0.5, StorageFormat.NATIVE.value)
+        y = Matrix(4, 2, 0.5, StorageFormat.NATIVE.value)
+        z = Matrix(3, 2, 0.5, StorageFormat.NATIVE.value)
+
+        left_side = egraph.let("left", (w.kron(x)) @ (y.krao(z)))
+        right_side = egraph.let("right", (w@y).krao(x@z))
+
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_hadamard_commutativity(self):
+        """Test: w.hdmr(x) -> x.hdmr(w)"""
+        egraph.push()
+
+        w = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+
+        left_side = egraph.let("left", w.hdmr(x))
+        right_side = egraph.let("right", x.hdmr(w))
+
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_hadamard_associativity(self):
+        """Test: w.hdmr(x.hdmr(y)) -> (w.hdmr(x)).hdmr(y)"""
+        egraph.push()
+
+        w = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+        y = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+
+        left_side = egraph.let("left", w.hdmr(x.hdmr(y)))
+        right_side = egraph.let("right", (w.hdmr(x)).hdmr(y))
+
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_hadamard_distributivity_over_addition(self):
+        """Test: w.hdmr(x.mat_add(y)) -> (w.hdmr(x)).mat_add(w.hdmr(y))"""
+        egraph.push()
+
+        w = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+        y = Matrix(3, 4, 0.5, StorageFormat.NATIVE.value)
+
+        left_side = egraph.let("left", w.hdmr(x.mat_add(y)))
+        right_side = egraph.let("right", (w.hdmr(x)).mat_add(w.hdmr(y)))
+
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_hdmr_kron_hdmr(self):
+        egraph.push()
+        w = Matrix(2, 3, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)
+        y = Matrix(2, 3, 0.5, StorageFormat.NATIVE.value)  # same dims as w
+        z = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)  # same dims as x
+
+        left_side = egraph.let("left", (w.kron(x)).hdmr(y.kron(z)))
+        right_side = egraph.let("right", (w.hdmr(y)).kron(x.hdmr(z)))
+
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(left_side == right_side))
+        egraph.pop()
+
+    def test_kronecker_hadamard_distributivity_fails_wrong_dims(self):
+        egraph.push()
+
+        w = Matrix(2, 3, 0.5, StorageFormat.NATIVE.value)
+        x = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)
+        y = Matrix(3, 2, 0.5, StorageFormat.NATIVE.value)
+        z = Matrix(4, 5, 0.5, StorageFormat.NATIVE.value)
+
+        left_side = egraph.let("left", (w.kron(x)).hdmr(y.kron(z)))
+        right_side = egraph.let("right", (w.hdmr(y)).kron(x.hdmr(z)))
+
+        egraph.saturate(visualize=False)
+        self.assertFalse(egraph.check_bool(left_side == right_side))
         egraph.pop()
