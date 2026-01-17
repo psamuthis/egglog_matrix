@@ -1,5 +1,5 @@
 import unittest
-from matrix import egraph, Matrix, Vector, SPARSITY_THRESHOLD, StorageFormat
+from Rewrites import egraph, Matrix, Vector, SPARSITY_THRESHOLD, StorageFormat
 
 class TestMatrixToCSC(unittest.TestCase):
     def test_native_to_csr_rewrite(self):

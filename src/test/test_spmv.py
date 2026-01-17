@@ -1,5 +1,5 @@
 import unittest
-from matrix import egraph, Matrix, Vector, SPARSITY_THRESHOLD, StorageFormat
+from Rewrites import egraph, Matrix, Vector, SPARSITY_THRESHOLD, StorageFormat
 
 class TestMatrixVector(unittest.TestCase):
 
