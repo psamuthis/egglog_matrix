@@ -3,17 +3,13 @@ from typing import Optional
 from enum import Enum
 import re
 
-MATRIX_TOKEN = r"Matrix\(\d+,\s?\d+,\s?\d*\.\d+,\s?\d+\)"
-
 class MatrixOp(Enum):
     INIT = "init"
     MAT_INV = "mat_inv"
     MAT_MPINV = "mat_mpinv"
     MAT_TRANS = "mat_trans"
-    TO_CSR = "to_csr"
-    TO_CSC = "to_csc"
     MATMUL = "@"
-    MAT_ADD = "mat_add"
+    MAT_ADD = "+"
     KRON = "kron"
     KRAO = "krao"
     HDMR = "hdmr"
@@ -25,6 +21,12 @@ class MatrixOp(Enum):
     def ANY(cls) -> str:
         op_patterns = [re.escape(op.value) for op in cls]
         return '|'.join(op_patterns)
+
+MATRIX_TOKEN = r"Matrix\(\d+,\s*\d+,\s*\d*\.\d+\)"
+MUL_DIST_OVER_ADD = (
+    rf"({MATRIX_TOKEN}\s*{MatrixOp.MATMUL}\s*\({MATRIX_TOKEN}\s*{MatrixOp.MAT_ADD}\s*{MATRIX_TOKEN}\))"
+    rf"|(\({MATRIX_TOKEN}\s;{MatrixOp.MAT_ADD}\s*{MATRIX_TOKEN}\)\s*{MatrixOp.MATMUL}\s*{MATRIX_TOKEN})"
+)
 
 @dataclass
 class ExpressionTree:
@@ -72,6 +74,13 @@ def build_compute_graph(expr: str, debug: str="", depth: int=0) -> ExpressionTre
             return ExpressionTree(node=level_operation, left=left_tree, right=right_tree)
 
     return ExpressionTree(node=expr, left=None, right=None)
+
+def unfold_expr(expr: str) -> str:
+    #print("unfolding expression")
+    #for match in re.finditer(MUL_DIST_OVER_ADD, expr):
+        #print(f'{match.group()} {match.span()}')
+
+    return expr
 
 
 def get_parenthesis_balance(expr: str) -> int:
