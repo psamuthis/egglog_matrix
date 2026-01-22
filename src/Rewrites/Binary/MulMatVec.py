@@ -24,8 +24,6 @@ def _matrix_vector(m: Matrix, x: Vector, y: Vector, r: i64, c: i64, l: i64, s: f
 
     yield rule(
         y == (m.spmv(x)),
-        s == m.sparsity,
-        s >= SPARSITY_THRESHOLD,
         x.len == m.col,
         l == m.row,
     ).then(set_(y.len).to(l))
@@ -35,8 +33,7 @@ def _matrix_vector(m: Matrix, x: Vector, y: Vector, r: i64, c: i64, l: i64, s: f
         c == m.col,
     ).then(set_cost(m.spmv(x), r*c/2))
 
-    yield rewrite(m.mat_vec_mul(x)).to(
-        m.spmv(x),
-        s == m.sparsity,
-        s >= SPARSITY_THRESHOLD,
+    yield birewrite(m.mat_vec_mul(x)).to(
+        m.to_CSR().spmv(x),
+        m.sparsity >= SPARSITY_THRESHOLD,
     )

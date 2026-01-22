@@ -25,6 +25,12 @@ def _matrix_kronecker(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
         c == y.col * z.col,
     ).then(set_cost(y.kron(z), r * c))
 
+    yield rule(
+        x == y.kron_sparse(z),
+        r == y.row * z.row,
+        c == y.col * z.col,
+    ).then(set_cost(y.kron_sparse(z), r*c/2))
+
     yield birewrite(x.kron(y+z)).to((x.kron(y)) + (x.kron(z)))
     yield birewrite((y+z).kron(x)).to((y.kron(x)) + (z.kron(x)))
     yield birewrite((x.kron(y)).kron(z)).to(x.kron((y.kron(z))))
@@ -39,3 +45,9 @@ def _matrix_kronecker(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
     yield birewrite(w.kron(x).mat_trans()).to(w.mat_trans().kron(x.mat_trans()))
     #TO ADD: concatenation (cf. wiki 4. Commutator Property)
     #TO ADD: mp distrib (wiki 6. inverse of kron prod)
+
+    yield birewrite(x.kron(y)).to(
+        x.to_CSR().kron_sparse(y.to_CSR()),
+        x.sparsity >= SPARSITY_THRESHOLD,
+        y.sparsity >= SPARSITY_THRESHOLD,
+    )
