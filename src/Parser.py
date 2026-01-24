@@ -3,16 +3,17 @@ from typing import Optional
 from enum import Enum
 import re
 
-class MatrixOp(Enum):
-    INIT = "init"
-    MAT_INV = "mat_inv"
-    MAT_MPINV = "mat_mpinv"
-    MAT_TRANS = "mat_trans"
+class BinaryMatrixOp(Enum):
     MATMUL = "@"
+    MATMUL_SPARSE = "matmul_sparse"
     MAT_ADD = "+"
+    MATADD_SPARSE = "matadd_sparse"
     KRON = "kron"
+    KRON_SPARSE = "kron_sparse"
     KRAO = "krao"
+    KRAO_SPARSE = "krao_sparse"
     HDMR = "hdmr"
+    HDMR_SPARSE = "hdmr_sparse"
     MAT_CONCAT = "mat_concat"
     MAT_VEC_MUL = "mat_vec_mul"
     SPMV = "spmv"
@@ -22,10 +23,22 @@ class MatrixOp(Enum):
         op_patterns = [re.escape(op.value) for op in cls]
         return '|'.join(op_patterns)
 
-MATRIX_TOKEN = r"Matrix\(\d+,\s*\d+,\s*\d*\.\d+\)"
+class UnaryMatrixOp(Enum):
+    MAT_INV = "mat_inv"
+    MAT_MPINV = "mat_mpinv"
+    MAT_TRANS = "mat_trans"
+    TO_CSC = "to_CSC"
+    TO_CSR = "to_CSR"
+
+    @classmethod
+    def ANY(cls) -> str:
+        op_patterns = [re.escape(op.value) for op in cls]
+        return '|'.join(op_patterns)
+
+MATRIX_TOKEN = r"Matrix\(\d+,\s*\d+,\s*\d*\.\d+\)(\.{UnaryMatrixOp.ANY()}\(\))"
 MUL_DIST_OVER_ADD = (
-    rf"({MATRIX_TOKEN}\s*{MatrixOp.MATMUL}\s*\({MATRIX_TOKEN}\s*{MatrixOp.MAT_ADD}\s*{MATRIX_TOKEN}\))"
-    rf"|(\({MATRIX_TOKEN}\s;{MatrixOp.MAT_ADD}\s*{MATRIX_TOKEN}\)\s*{MatrixOp.MATMUL}\s*{MATRIX_TOKEN})"
+    rf"({MATRIX_TOKEN}\s*{BinaryMatrixOp.MATMUL}\s*\({MATRIX_TOKEN}\s*{BinaryMatrixOp.MAT_ADD}\s*{MATRIX_TOKEN}\))"
+    rf"|(\({MATRIX_TOKEN}\s;{BinaryMatrixOp.MAT_ADD}\s*{MATRIX_TOKEN}\)\s*{BinaryMatrixOp.MATMUL}\s*{MATRIX_TOKEN})"
 )
 
 @dataclass
@@ -58,7 +71,7 @@ def build_compute_graph(expr: str, debug: str="", depth: int=0) -> ExpressionTre
     balance = get_parenthesis_balance(expr)
     assert balance == 0, "build_compute_graph: input expr not balanced."
 
-    pattern = rf"{MatrixOp.ANY()}"
+    pattern = rf"{BinaryMatrixOp.ANY()}"
     for match in re.finditer(pattern, expr):
         start,end = match.span()
         balance = get_parenthesis_balance_at(expr, start)
@@ -96,8 +109,6 @@ def get_parenthesis_balance(expr: str) -> int:
 
 def trim_outer_parenthesis(expr: str) -> str:
     expr = expr.strip()
-
-
 
     while not bool(re.search(MATRIX_TOKEN+"$", expr)) and expr.startswith('(') and expr.endswith(')'):
         trimmed = expr[1:-1]

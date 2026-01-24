@@ -46,7 +46,7 @@ def _matrix_kronecker(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
     #TO ADD: concatenation (cf. wiki 4. Commutator Property)
     #TO ADD: mp distrib (wiki 6. inverse of kron prod)
 
-    yield birewrite(x.kron(y)).to(
+    yield rewrite(x.kron(y)).to(
         x.to_CSR().kron_sparse(y.to_CSR()),
         x.sparsity >= SPARSITY_THRESHOLD,
         y.sparsity >= SPARSITY_THRESHOLD,

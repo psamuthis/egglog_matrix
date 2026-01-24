@@ -53,9 +53,3 @@ def _matrix_khatrirao(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
         y.sparsity >= SPARSITY_THRESHOLD,
         z.sparsity >= SPARSITY_THRESHOLD,
     )
-
-    yield rewrite(y.krao(z)).to(
-        y.krao_sparse(z.to_CSC()),
-        y.sparsity < SPARSITY_THRESHOLD,
-        z.sparsity >= SPARSITY_THRESHOLD,
-    )

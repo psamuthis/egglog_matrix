@@ -75,3 +75,29 @@ class TestMatrixHadamard(unittest.TestCase):
         egraph.saturate(visualize=False)
         self.assertFalse(egraph.check_bool(left_side == right_side))
         egraph.pop()
+
+    def test_hdmr_to_sparse(self):
+        egraph.push()
+
+        x = Matrix(24, 48, 0.8)
+        y = Matrix(24, 48, 0.7)
+        input = egraph.let("input", x.hdmr(y))
+        expected = egraph.let("expected", x.to_CSR().hdmr_sparse(y.to_CSR()))
+        
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(input == expected))
+
+        egraph.pop()
+
+    def test_hdmr_to_sparse_no_rewrite(self):
+        egraph.push()
+
+        x = Matrix(24, 48, 0.3)
+        y = Matrix(24, 48, 0.2)
+        input = egraph.let("input", x.hdmr(y))
+        avoid = egraph.let("avoid", x.to_CSR().hdmr_sparse(y.to_CSR()))
+        
+        egraph.saturate(visualize=False)
+        self.assertTrue(egraph.check_bool(input != avoid))
+
+        egraph.pop()
