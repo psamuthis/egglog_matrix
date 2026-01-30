@@ -27,9 +27,6 @@ def _matrix_addition(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64,
         c == y.col,
     ).then(set_cost(y+z, r*c))
 
-    yield rewrite(x @ (y+z)).to((x @ y) + (x @ z))
-    yield rewrite((y+z) @ x).to((y @ x) + (z @ x))
-
     yield rule(
         x == (y.matadd_sparse(z)),
         y.row == z.row,

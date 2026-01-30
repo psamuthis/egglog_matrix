@@ -32,7 +32,7 @@ def _matrix_multiplication(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i
     yield birewrite(x @ (y @ z)).to((x @ y) @ z)
 
     yield rule(
-        x == y.matmul_sparse(z),
+        x == (y.matmul_sparse(z)),
         y.col == z.row,
         y.sparsity >= SPARSITY_THRESHOLD,
         z.sparsity >= SPARSITY_THRESHOLD,

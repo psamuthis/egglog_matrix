@@ -8,5 +8,7 @@ def compile(expr, egraph):
     print(f'Input expr: {optimized_expr}')
 
     optimized_expr = unfold_expr(optimized_expr)
+    print(f'Unfolded expression: {optimized_expr}')
+
     compute_graph = build_compute_graph(optimized_expr)
     compute_graph.print_tree()
