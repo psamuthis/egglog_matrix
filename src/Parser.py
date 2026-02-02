@@ -5,16 +5,16 @@ import re
 
 
 class BinaryMatrixOp(Enum):
-    MATMUL = "@"
     MATMUL_SPARSE = "matmul_sparse"
-    MAT_ADD = "+"
     MATADD_SPARSE = "matadd_sparse"
-    KRON = "kron"
     KRON_SPARSE = "kron_sparse"
-    KRAO = "krao"
     KRAO_SPARSE = "krao_sparse"
-    HDMR = "hdmr"
     HDMR_SPARSE = "hdmr_sparse"
+    MATMUL = "@"
+    MAT_ADD = "+"
+    KRON = "kron"
+    KRAO = "krao"
+    HDMR = "hdmr"
     MAT_CONCAT = "mat_concat"
     MAT_VEC_MUL = "mat_vec_mul"
     SPMV = "spmv"
