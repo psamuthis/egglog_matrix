@@ -36,36 +36,7 @@ class UnaryMatrixOp(Enum):
         op_patterns = [re.escape(op.value) for op in cls]
         return '|'.join(op_patterns)
 
-#MATRIX_TOKEN = r"Matrix\(\d+,\s*\d+,\s*\d*\.\d+\)(\.{UnaryMatrixOp.ANY()}\(\))?"
 MATRIX_TOKEN = rf"Matrix\(\d+,\s*\d+,\s*\d*\.\d+\)(?:\.{UnaryMatrixOp.ANY()}\(\))*"
-EXPRESSION = rf"""
-    (?:
-    {MATRIX_TOKEN}\s*
-    {re.escape(BinaryMatrixOp.ANY())}\s*
-    {MATRIX_TOKEN}\s*
-    {re.escape(BinaryMatrixOp.ANY())}?)*
-"""
-
-class DistributiveMatrixOp(Enum):
-    MUL_LDIST_OVER_ADD = rf"""
-        ({MATRIX_TOKEN})\s*
-        {re.escape(BinaryMatrixOp.MATMUL.value)}\s*
-        \(\s*
-        ({MATRIX_TOKEN}|{EXPRESSION})\s*
-        {re.escape(BinaryMatrixOp.MAT_ADD.value)}\s*
-        ({MATRIX_TOKEN}|{EXPRESSION})\s*
-        \)
-    """
-
-    MUL_RDIST_OVER_ADD = rf"""
-        \(\s*
-        ({MATRIX_TOKEN}|{EXPRESSION})\s*
-        {re.escape(BinaryMatrixOp.MAT_ADD.value)}\s*
-        ({MATRIX_TOKEN})\s*
-        \)
-        ({MATRIX_TOKEN}|{EXPRESSION})\s*
-        {re.escape(BinaryMatrixOp.MATMUL.value)}\s*
-    """
 
 @dataclass
 class ExpressionTree:
@@ -114,9 +85,7 @@ def build_compute_graph(expr: str, debug: str="", depth: int=0) -> ExpressionTre
 
     return ExpressionTree(node=expr, left=None, right=None)
 
-def unfold_expr(expr: str) -> str:
-    expr = re.sub(DistributiveMatrixOp.MUL_LDIST_OVER_ADD.value, rf'(\1 @ \2) + (\1 @ \3)', expr, flags=re.VERBOSE)
-    return expr
+
 
 def get_parenthesis_balance(expr: str) -> int:
     balance = 0

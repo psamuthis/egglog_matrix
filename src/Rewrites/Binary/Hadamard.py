@@ -28,7 +28,6 @@ def _matrix_hadamard(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64,
     ).then(set_cost(y.hdmr(z), r * c * 2))
     yield birewrite(w.hdmr(x)).to(x.hdmr(w))
     yield birewrite(w.hdmr(x.hdmr(y))).to((w.hdmr(x)).hdmr(y))
-    yield birewrite(w.hdmr(x+y)).to((w.hdmr(x)) + (w.hdmr(y)))
 
     yield rule(
         x == y.hdmr_sparse(z),

@@ -31,8 +31,6 @@ def _matrix_kronecker(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
         c == y.col * z.col,
     ).then(set_cost(y.kron_sparse(z), r*c/2))
 
-    yield birewrite(x.kron(y+z)).to((x.kron(y)) + (x.kron(z)))
-    yield birewrite((y+z).kron(x)).to((y.kron(x)) + (z.kron(x)))
     yield birewrite((x.kron(y)).kron(z)).to(x.kron((y.kron(z))))
     yield birewrite((w.kron(x)) @ (y.kron(z))).to((w@y).kron(x@z))
     yield birewrite((w.kron(x)).hdmr((y.kron(z)))
