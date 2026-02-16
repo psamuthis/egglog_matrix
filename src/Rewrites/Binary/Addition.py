@@ -48,7 +48,7 @@ def _matrix_addition(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64,
     ).then(set_cost(y.matadd_sparse(z), r*c/2))
 
     yield rewrite(x + y).to(
-        x.to_CSR().matadd_sparse(y.to_CSR()),
+        x.matadd_sparse(y),
         x.sparsity >= SPARSITY_THRESHOLD,
         y.sparsity >= SPARSITY_THRESHOLD,
     )

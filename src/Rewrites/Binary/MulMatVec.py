@@ -34,6 +34,6 @@ def _matrix_vector(m: Matrix, x: Vector, y: Vector, r: i64, c: i64, l: i64, s: f
     ).then(set_cost(m.spmv(x), r*c/2))
 
     yield birewrite(m.mat_vec_mul(x)).to(
-        m.to_CSR().spmv(x),
+        m.spmv(x),
         m.sparsity >= SPARSITY_THRESHOLD,
     )

@@ -25,9 +25,12 @@ class BinaryMatrixOp(Enum):
         return '|'.join(op_patterns)
 
 class UnaryMatrixOp(Enum):
+    MAT_TRANS_SPARSE = "mat_trans_sparse"
+    MAT_INV_SPARSE = "mat_inv_sparse"
+    MAT_MPINV_SPARSE = "mat_mpinv_sparse"
+    MAT_TRANS = "mat_trans"
     MAT_INV = "mat_inv"
     MAT_MPINV = "mat_mpinv"
-    MAT_TRANS = "mat_trans"
     TO_CSC = "to_CSC"
     TO_CSR = "to_CSR"
 
@@ -36,6 +39,7 @@ class UnaryMatrixOp(Enum):
         op_patterns = [re.escape(op.value) for op in cls]
         return '|'.join(op_patterns)
 
+MATRIX_RAW = rf"Matrix\(\d+,\s*\d+,\s*\d*\.\d+\)"
 MATRIX_TOKEN = rf"Matrix\(\d+,\s*\d+,\s*\d*\.\d+\)(?:\.{UnaryMatrixOp.ANY()}\(\))*"
 
 @dataclass

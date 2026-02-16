@@ -27,10 +27,25 @@ def _matrix_kronecker(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
 
     yield rule(
         x == y.kron_sparse(z),
+        y.sparsity < SPARSITY_THRESHOLD,
+        z.sparsity < SPARSITY_THRESHOLD,
+        r == y.row * z.row,
+        c == y.col * z.col,
+        s == 1.0 - (1.0-y.sparsity)*(1.0-z.sparsity),
+    ).then(
+        set_(x.row).to(r),
+        set_(x.col).to(c),
+        set_(x.sparsity).to(s),
+    )
+
+    yield rule(
+        x == y.kron_sparse(z),
         r == y.row * z.row,
         c == y.col * z.col,
     ).then(set_cost(y.kron_sparse(z), r*c/2))
 
+    yield birewrite((y+z).kron(x)).to((y.kron(x)) + (z.kron(x)))
+    yield birewrite(x.kron(y+z)).to((x.kron(y)) + (x.kron(z)))
     yield birewrite((x.kron(y)).kron(z)).to(x.kron((y.kron(z))))
     yield birewrite((w.kron(x)) @ (y.kron(z))).to((w@y).kron(x@z))
     yield birewrite((w.kron(x)).hdmr((y.kron(z)))
@@ -45,7 +60,7 @@ def _matrix_kronecker(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
     #TO ADD: mp distrib (wiki 6. inverse of kron prod)
 
     yield rewrite(x.kron(y)).to(
-        x.to_CSR().kron_sparse(y.to_CSR()),
+        x.kron_sparse(y),
         x.sparsity >= SPARSITY_THRESHOLD,
         y.sparsity >= SPARSITY_THRESHOLD,
     )

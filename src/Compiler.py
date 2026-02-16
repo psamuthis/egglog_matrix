@@ -6,6 +6,7 @@ from Parser import BinaryMatrixOp
 from Parser import UnaryMatrixOp
 from Parser import ExpressionTree
 from Parser import MATRIX_TOKEN
+from Parser import MATRIX_RAW
 
 def compile(expr, egraph):
     egraph.saturate(visualize=False)
@@ -99,10 +100,10 @@ def unfold_unary_ops(leaf: str) -> ExpressionTree:
     if not unary_matches:
         return ExpressionTree(node=leaf, left=None, right=None)
 
-    targeted_matrix = re.match(rf"^({MATRIX_TOKEN.split(").")[0]})", leaf)
+    targeted_matrix = re.match(rf"^({MATRIX_RAW})", leaf)
     if not targeted_matrix:
         return ExpressionTree(node=leaf, left=None, right=None)
-    targeted_matrix = targeted_matrix.group(1)+")"
+    targeted_matrix = targeted_matrix.group(0)
 
     unary_ops = [match.group(1) for match in unary_matches]
 

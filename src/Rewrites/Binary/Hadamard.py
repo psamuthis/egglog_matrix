@@ -26,6 +26,7 @@ def _matrix_hadamard(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64,
         r == y.row,
         c == y.col,
     ).then(set_cost(y.hdmr(z), r * c * 2))
+    yield birewrite(w.hdmr(x+y)).to(w.hdmr(x) + w.hdmr(y))
     yield birewrite(w.hdmr(x)).to(x.hdmr(w))
     yield birewrite(w.hdmr(x.hdmr(y))).to((w.hdmr(x)).hdmr(y))
 
@@ -51,7 +52,7 @@ def _matrix_hadamard(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64,
     ).then(set_cost(y.hdmr_sparse(z), (r * c)))
 
     yield rewrite(y.hdmr(z)).to(
-        y.to_CSR().hdmr_sparse(z.to_CSR()),
+        y.hdmr_sparse(z),
         y.sparsity >= SPARSITY_THRESHOLD,
         z.sparsity >= SPARSITY_THRESHOLD,
     )

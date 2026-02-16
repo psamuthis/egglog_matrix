@@ -82,8 +82,8 @@ class TestMatrixHadamard(unittest.TestCase):
         x = Matrix(24, 48, 0.8)
         y = Matrix(24, 48, 0.7)
         input = egraph.let("input", x.hdmr(y))
-        expected = egraph.let("expected", x.to_CSR().hdmr_sparse(y.to_CSR()))
-        
+        expected = egraph.let("expected", x.hdmr_sparse(y))
+
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(input == expected))
 
@@ -95,8 +95,8 @@ class TestMatrixHadamard(unittest.TestCase):
         x = Matrix(24, 48, 0.3)
         y = Matrix(24, 48, 0.2)
         input = egraph.let("input", x.hdmr(y))
-        avoid = egraph.let("avoid", x.to_CSR().hdmr_sparse(y.to_CSR()))
-        
+        avoid = egraph.let("avoid", x.hdmr_sparse(y))
+
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(input != avoid))
 

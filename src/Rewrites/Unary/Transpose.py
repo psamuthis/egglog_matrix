@@ -3,7 +3,7 @@ from egglog import *
 from collections.abc import Iterable
 
 from ..EGraph import egraph
-from ..MatrixSort import Matrix
+from ..MatrixSort import Matrix, SPARSITY_THRESHOLD
 
 @egraph.register
 def _matrix_transpose(x: Matrix, y: Matrix, r: i64, c: i64, s: f64) -> Iterable[RewriteOrRule]:
@@ -23,3 +23,25 @@ def _matrix_transpose(x: Matrix, y: Matrix, r: i64, c: i64, s: f64) -> Iterable[
         c == y.col,
         s == y.sparsity,
     ).then(set_cost(y.mat_trans(), r*c))
+
+    yield rule(
+        x == y.mat_trans_sparse(),
+        r == y.row,
+        c == y.col,
+        s == y.sparsity,
+    ).then(
+        set_(x.row).to(c),
+        set_(x.col).to(r),
+        set_(x.sparsity).to(s),
+    )
+    yield rule(
+        x == y.mat_trans(),
+        r == y.row,
+        c == y.col,
+        s == y.sparsity,
+    ).then(set_cost(y.mat_trans_sparse(), r*c/2))
+
+    yield rewrite(x.mat_trans()).to(
+        x.mat_trans_sparse(),
+        x.sparsity >= SPARSITY_THRESHOLD,
+    )

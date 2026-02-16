@@ -37,7 +37,7 @@ class TestMatrixKhatriRao(unittest.TestCase):
         y = Matrix(47, 6, 0.8)
 
         input = egraph.let("input", x.krao(y))
-        expected = egraph.let("expected", x.to_CSR().krao_sparse(y.to_CSC()))
+        expected = egraph.let("expected", x.krao_sparse(y))
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(input == expected))
@@ -51,7 +51,7 @@ class TestMatrixKhatriRao(unittest.TestCase):
         y = Matrix(47, 6, 0.8)
 
         input = egraph.let("input", x.krao(y))
-        avoid = egraph.let("avoid", x.to_CSR().krao_sparse(y.to_CSC()))
+        avoid = egraph.let("avoid", x.krao_sparse(y))
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(input != avoid))

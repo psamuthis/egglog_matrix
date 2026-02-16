@@ -53,7 +53,7 @@ def _matrix_multiplication(x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i
     ).then(set_cost(y.matmul_sparse(z), (r*m*c)/2))
 
     yield rewrite(x @ y).to(
-        x.to_CSR().matmul_sparse(y.to_CSC()),
+        x.matmul_sparse(y),
         x.sparsity >= SPARSITY_THRESHOLD,
         y.sparsity >= SPARSITY_THRESHOLD,
     )

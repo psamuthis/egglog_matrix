@@ -13,7 +13,7 @@ class TestMatrixVector(unittest.TestCase):
         matrix_sparse = egraph.let("matrix_sparse", Matrix(64, common_dimension, 0.7))
         vector = egraph.let("vector", Vector(common_dimension))
         input = egraph.let("input", matrix_sparse.mat_vec_mul(vector))
-        expected = egraph.let("expected", matrix_sparse.to_CSR().spmv(vector))
+        expected = egraph.let("expected", matrix_sparse.spmv(vector))
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(input == expected))
@@ -26,7 +26,7 @@ class TestMatrixVector(unittest.TestCase):
         matrix_dense = egraph.let("matrix_dense", Matrix(64, 29, 0.3))
         vector = egraph.let("vector", Vector(29))
         input = egraph.let("input", matrix_dense.mat_vec_mul(vector))
-        avoid = egraph.let("avoid", matrix_dense.to_CSR().spmv(vector))
+        avoid = egraph.let("avoid", matrix_dense.spmv(vector))
 
         egraph.saturate(visualize=False)
         self.assertFalse(egraph.check_bool(input == avoid))

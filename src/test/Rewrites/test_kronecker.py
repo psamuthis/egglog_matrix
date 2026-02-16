@@ -107,7 +107,7 @@ class TestMatrixKronecker(unittest.TestCase):
         x = Matrix(8, 10, 0.9)
 
         left = egraph.let("left", w.kron(x))
-        right = egraph.let("right", w.to_CSR().kron_sparse(x.to_CSR()))
+        right = egraph.let("right", w.kron_sparse(x))
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(left == right))
@@ -120,7 +120,7 @@ class TestMatrixKronecker(unittest.TestCase):
         x = Matrix(8, 10, 0.9)
 
         left = egraph.let("left", w.kron(x))
-        right = egraph.let("right", w.to_CSR().kron_sparse(x.to_CSR()))
+        right = egraph.let("right", w.kron_sparse(x))
 
         egraph.saturate(visualize=False)
         self.assertTrue(egraph.check_bool(left != right))

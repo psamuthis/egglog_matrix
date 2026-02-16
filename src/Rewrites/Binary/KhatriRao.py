@@ -8,7 +8,7 @@ from ..MatrixSort import Matrix
 @egraph.register
 def _matrix_khatrirao(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64, m: i64, s: f64) -> Iterable[RewriteOrRule]:
     yield rule(
-        x == y.krao(z),
+        x == (y.krao(z)),
         y.col == z.col,
         y.sparsity < SPARSITY_THRESHOLD,
         z.sparsity < SPARSITY_THRESHOLD,
@@ -43,13 +43,13 @@ def _matrix_khatrirao(w: Matrix, x: Matrix, y: Matrix, z: Matrix, r: i64, c: i64
         set_(x.sparsity).to(s),
     )
     yield rule(
-        y.krao_sparse(z),
+        x == (y.krao_sparse(z)),
         r == y.row * z.row,
         c == y.col,
-    ).then(set_cost(y.krao(z), r*c/2))
+    ).then(set_cost(y.krao_sparse(z), (r*c)/2))
 
     yield rewrite(y.krao(z)).to(
-        y.to_CSR().krao_sparse(z.to_CSC()),
+        y.krao_sparse(z),
         y.sparsity >= SPARSITY_THRESHOLD,
         z.sparsity >= SPARSITY_THRESHOLD,
     )
