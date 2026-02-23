@@ -8,6 +8,7 @@ import numpy as np
 import tempfile
 import os
 import scipy
+import scipy.sparse as sp
 
 from .parser import build_compute_graph
 from .parser import BinaryMatrixOp
@@ -15,15 +16,18 @@ from .parser import UnaryMatrixOp
 from .parser import ExpressionTree
 from .parser import MATRIX_TOKEN
 from .parser import MATRIX_RAW
+from utils.time_operation import ComputationTimer
+
+comp_timer = ComputationTimer()
 
 def compile(expr, egraph, matrices_data=None, DEBUG=False):
     if(DEBUG):
-        print(f"Rewriting {egraph.extract(expr)} with egglog...")
+        print(f"Rewriting original expression:\n{egraph.extract(expr)}")
     egraph.saturate(visualize=False)
     optimized_expr = egraph.extract(expr)
     optimized_expr = str(optimized_expr)
     if(DEBUG):
-        print(f'Rewrote expr to: {optimized_expr}')
+        print(f'\nExpression as been rewritten to:\n{optimized_expr}')
 
     if(DEBUG):
         print(f'\nBuilding compute graph...')
@@ -36,8 +40,6 @@ def compile(expr, egraph, matrices_data=None, DEBUG=False):
 
     return evaluate(compute_graph, matrices_data)
 
-import numpy as np
-import scipy.sparse as sp
 
 def evaluate(node, data_map):
     if isinstance(node, str):
@@ -63,27 +65,56 @@ def evaluate(node, data_map):
             return val
         return data_map.get(node.node)
 
-    def ensure_sparse(val):
-        return val if sp.issparse(val) else sp.csr_matrix(val)
+    def ensure_csr(val):
+        return val if sp.isspmatrix_csr(val) else sp.csr_matrix(val)
+
+    def ensure_csc(val):
+        return val if sp.isspmatrix_csc(val) else sp.csc_matrix(val)
 
     def ensure_dense(val):
         return val.toarray() if sp.issparse(val) else val
 
+    @comp_timer.time_operation("@")
+    def matmul_op(l, r): return l @ r
+
+    @comp_timer.time_operation("hdmr")
+    def hdmr_op(l, r): return l * r
+
+    @comp_timer.time_operation("kron")
+    def kron_op(l, r): return np.kron(l, r)
+
+    @comp_timer.time_operation("krao")
+    def krao_op(l, r): return khatri_rao_dense(l, r)
+
+    @comp_timer.time_operation("add")
+    def add_op(l, r): return l + r,
+
+    @comp_timer.time_operation("matmul_sparse")
+    def matmul_sparse_op(l, r): return ensure_csr(l) @ ensure_csc(r)
+
+    @comp_timer.time_operation("hdmr_sparse")
+    def hdmr_sparse_op(l, r): return ensure_csr(l).multiply(ensure_csr(r))
+
+    @comp_timer.time_operation("kron_sparse")
+    def kron_sparse_op(l, r): return sp.kron(ensure_csr(l), ensure_csc(r))
+
+    @comp_timer.time_operation("krao_sparse")
+    def krao_sparse_op(l, r): return sp.khatri_rao(ensure_csr(l), ensure_csc(r))
+
     ops = {
-        "@": lambda l, r: l @ r,
-        "matmul": lambda l, r: l @ r,
-        "hdmr": lambda l, r: l * r,
-        "kron": lambda l, r: np.kron(l, r),
-        "krao": lambda l, r: khatri_rao_dense(l, r),
-        "+": lambda l, r: l + r,
+        "@": lambda l, r: matmul_op(l, r),
+        "hdmr": lambda l, r: hdmr_op(l, r),
+        "kron": lambda l, r: kron_op(l, r),
+        "krao": lambda l, r: krao_op(l, r),
+        "+": lambda l, r: add_op(l, r),
 
-        "matmul_sparse": lambda l, r: ensure_sparse(l) @ ensure_sparse(r),
-        "hdmr_sparse": lambda l, r: ensure_sparse(l).multiply(ensure_sparse(r)),
-        "kron_sparse": lambda l, r: sp.kron(ensure_sparse(l), ensure_sparse(r)),
-        "krao_sparse": lambda l, r: sp.khatri_rao(ensure_sparse(l), ensure_sparse(r)),
+        "matmul_sparse": lambda l, r: matmul_sparse_op(l, r),
+        "hdmr_sparse": lambda l, r: hdmr_sparse_op(l, r),
+        "kron_sparse": lambda l, r: kron_sparse_op(l, r),
+        "krao_sparse": lambda l, r: krao_sparse_op(l, r),
 
-        "mat_trans()": lambda l, r: l.T,
-        "mat_trans_sparse()": lambda l, r: l.T,
+        "mat_trans()": lambda l: l.T,
+        "mat_trans_sparse()": lambda l: l.T,
     }
 
     if node.node in ops:
