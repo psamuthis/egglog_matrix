@@ -113,8 +113,8 @@ def evaluate(node, data_map):
         "kron_sparse": lambda l, r: kron_sparse_op(l, r),
         "krao_sparse": lambda l, r: krao_sparse_op(l, r),
 
-        "mat_trans()": lambda l: l.T,
-        "mat_trans_sparse()": lambda l: l.T,
+        "mat_trans": lambda l, r: l.T,
+        "mat_trans_sparse": lambda l, r: l.T,
     }
 
     if node.node in ops:
