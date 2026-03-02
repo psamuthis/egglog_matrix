@@ -32,8 +32,8 @@ def compile(expr, egraph, matrices_data=None, DEBUG=False):
     if(DEBUG):
         print(f'\nBuilding compute graph...')
     compute_graph = build_compute_graph(optimized_expr)
-    compute_graph = unfold_op_dist_over_add(compute_graph)
     compute_graph = lift_unary_ops(compute_graph)
+    compute_graph = unfold_op_dist_over_add(compute_graph)
     if(DEBUG):
         print(f'Resulting compute graph:')
         compute_graph.print_tree()
@@ -140,42 +140,42 @@ def unfold_op_dist_over_add(graph: ExpressionTree) -> ExpressionTree:
     if (graph.node == BinaryMatrixOp.MATMUL.value \
         or graph.node == BinaryMatrixOp.KRON.value \
         or graph.node == BinaryMatrixOp.HDMR.value) \
-        and isinstance(graph.right, ExpressionTree):
+        and isinstance(graph.right, ExpressionTree) \
+        and graph.right.node == BinaryMatrixOp.MAT_ADD.value:
 
-        if graph.right.node == BinaryMatrixOp.MAT_ADD.value:
-            return ExpressionTree(
-                node=BinaryMatrixOp.MAT_ADD.value,
-                left=ExpressionTree(
-                    node=graph.node,
-                    left=graph.left,
-                    right=graph.right.left,
-                ),
-                right=ExpressionTree(
-                    node=graph.node,
-                    left=graph.left,
-                    right=graph.right.right,
-                )
+        return ExpressionTree(
+            node=BinaryMatrixOp.MAT_ADD.value,
+            left=ExpressionTree(
+                node=graph.node,
+                left=graph.left,
+                right=graph.right.left,
+            ),
+            right=ExpressionTree(
+                node=graph.node,
+                left=graph.left,
+                right=graph.right.right,
             )
+        )
 
     if (graph.node == BinaryMatrixOp.MATMUL.value \
         or graph.node == BinaryMatrixOp.KRON.value \
         or graph.node == BinaryMatrixOp.HDMR.value) \
-        and isinstance(graph.left, ExpressionTree):
+        and isinstance(graph.left, ExpressionTree) \
+        and graph.left.node == BinaryMatrixOp.MAT_ADD.value:
 
-        if graph.left.node == BinaryMatrixOp.MAT_ADD.value:
-            return ExpressionTree(
-                node=BinaryMatrixOp.MAT_ADD.value,
-                left=ExpressionTree(
-                    node=BinaryMatrixOp.MATMUL.value,
-                    left=graph.left.left,
-                    right=graph.right,
-                ),
-                right=ExpressionTree(
-                    node=BinaryMatrixOp.MATMUL.value,
-                    left=graph.left.right,
-                    right=graph.right,
-                )
+        return ExpressionTree(
+            node=BinaryMatrixOp.MAT_ADD.value,
+            left=ExpressionTree(
+                node=graph.node,
+                left=graph.left.left,
+                right=graph.right,
+            ),
+            right=ExpressionTree(
+                node=graph.node,
+                left=graph.left.right,
+                right=graph.right,
             )
+        )
 
     return graph
 
